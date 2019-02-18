@@ -379,7 +379,7 @@
                 margin: -2px 0 0 0;
                 padding: 35px 25px 0;
                 border-right: 1px solid #000;
-                border-bottom: 5px solid #08c;
+                border-bottom: 5px solid #d11216;
                 border-left: 1px solid #000;
                 position: relative;
                 z-index: 10;
@@ -473,7 +473,7 @@
 
                 #calendar-widget ::content #mpCalendar .mp-cld-label {
                     color: #fff;
-                    background: #08c;
+                    background: #d11216;
                     border: 3px solid #fff;
                 }
 
@@ -501,7 +501,7 @@
                         #calendar-widget ::content #mpCalendar .mp-cld-day.highlighted.selected {
                             color: #000;
                             background: #e3e3e3;
-                            box-shadow: inset 0 -5px 0 0 #08c;
+                            box-shadow: inset 0 -5px 0 0 #d11216;
                             transition: all .3s ease-in-out
                         }
 
@@ -539,7 +539,7 @@
 
                         .selected-service::before {
                             background: #e3e3e3;
-                            box-shadow: inset 0 -5px 0 0 #08c;
+                            box-shadow: inset 0 -5px 0 0 #d11216;
                         }
 
             #calendar-delivery-options h4, #droppoint-delivery-options h4 {
@@ -720,6 +720,10 @@
                 -ms-user-select: none;
                 user-select: none;
                 transition: all .4s ease-in-out;
+            }
+
+            .gfs-lcc {
+                margin: 0 10px 25px;
             }
 
             @media (max-width: 1024px) {
@@ -955,6 +959,12 @@
                                     </span>
                                 </template>
                             </ul>
+
+                            <div class="gfs-lcc lcc-charge hidden">The prices shown <strong>include</strong> import Duties and Taxes of {{currencySymbol}}{{taxAndDutyPrice}}</div>
+                            <div class="gfs-lcc lcc-estimate hidden">
+                                The prices shown <strong>exclude</strong> import Duties and Taxes. You may be charged an additional
+                                {{currencySymbol}}{{taxAndDutyPrice}} by your local customs office
+                            </div>
                         </div>
                     </div>
                 </iron-collapse>
@@ -1006,6 +1016,12 @@
                                             </span>
                                         </template>
                                     </ul>
+
+                                    <div class="gfs-lcc lcc-charge hidden">The prices shown <strong>include</strong> import Duties and Taxes of {{currencySymbol}}{{taxAndDutyPrice}}</div>
+                                    <div class="gfs-lcc lcc-estimate hidden">
+                                        The prices shown <strong>exclude</strong> import Duties and Taxes. You may be charged an additional
+                                        {{currencySymbol}}{{taxAndDutyPrice}} by your local customs office
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -1124,7 +1140,7 @@
                                 </div>
                             </div>
                         </div>
-
+                        
                         <div>
                             <div id="droppoint-delivery-options">
                                 <h4>{{dropPointDeliveryPrompt}}</h4>
@@ -1141,6 +1157,12 @@
                                             </span>
                                         </template>
                                     </ul>
+
+                                    <div class="gfs-lcc lcc-charge hidden">The prices shown <strong>include</strong> import Duties and Taxes of {{currencySymbol}}{{taxAndDutyPrice}}</div>
+                                    <div class="gfs-lcc lcc-estimate hidden">
+                                        The prices shown <strong>exclude</strong> import Duties and Taxes. You may be charged an additional
+                                        {{currencySymbol}}{{taxAndDutyPrice}} by your local customs office
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -1241,6 +1263,12 @@
                                             </span>
                                         </template>
                                     </ul>
+
+                                    <div class="gfs-lcc lcc-charge hidden">The prices shown <strong>include</strong> import Duties and Taxes of {{currencySymbol}}{{taxAndDutyPrice}}</div>
+                                    <div class="gfs-lcc lcc-estimate hidden">
+                                        The prices shown <strong>exclude</strong> import Duties and Taxes. You may be charged an additional
+                                        {{currencySymbol}}{{taxAndDutyPrice}} by your local customs office
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -1550,6 +1578,32 @@
                     value: function () {
                         return [];
                     }
+                },
+
+                /**
+                *  Display or not the LCC message
+                */
+                showDutyMessage: {
+                    type: Object,
+                    value: true
+                },
+
+                /**
+                *  LCC property to define if estimate or charge
+                */
+                taxAndDutyType: {
+                    type: String,
+                    value: "estimate",
+                    observer: "taxAndDutyTypeChanged"
+                },
+
+                /**
+                *  LCC value
+                */
+                taxAndDuty: {
+                    type: Number,
+                    value: 0,
+                    observer: "taxAndDutyValueChanged"
                 },
 
                 // PRIVATE PROPERTIES
@@ -1908,6 +1962,8 @@
 
                 this._checkForServices(this.defaultDelivery);
 
+                // LCC
+                this.lccNotification();
                 console.log("_delayedInit end ", moment(new Date()).format("HH:mm:ss:SS"));
             },
 
@@ -2038,6 +2094,10 @@
                 this._data.nonDayDefinite.forEach(function(day) {
                     day.rates.forEach(function(service) {
                         if (service.serviceType.type === "dmStandard") {
+                            if (self.taxAndDutyType.toLowerCase() === "charge" && self.taxAndDuty > 0) {
+                                service.price = service.price + self.taxAndDuty;
+                            }
+
                             if (typeof(services[service.methodTitle]) === "undefined") {
                                 services[service.methodTitle] = {
                                     deliveryDate: day.deliveryDate,
@@ -2785,6 +2845,10 @@
                             obj.deliveryDateRange = self._formatNonDayDefiniteDate(startDate, endDate);
                         }
 
+                        if (self.taxAndDutyType.toLowerCase() === "charge" && self.taxAndDuty > 0) {
+                            obj.price = obj.price + self.taxAndDuty;
+                        }
+
                         results.push(obj);
                     });
                     return results;
@@ -2873,6 +2937,12 @@
 
                     if ((self._earliestDelivery == null) || deliveryDate < self._earliestDelivery) {
                         self._earliestDelivery = self._deliveryDays[dateStr];
+
+                        if (self.taxAndDutyType.toLowerCase() === "charge" && self.taxAndDuty > 0) {
+                            for (var i = 0; i < self._earliestDelivery.length; i++) {
+                                self._earliestDelivery[i].price = self._earliestDelivery[i].price + self.taxAndDuty;
+                            }
+                        }
                     }
                 });
             },
@@ -3549,6 +3619,11 @@
                             endDate.setDate(endDate.getDate() + (item.service.maxDD - 1));
                             obj.deliveryDateRange = self._formatNonDayDefiniteDate(startDate, endDate);
                         }
+
+                        if (self.taxAndDutyType.toLowerCase() === "charge" && self.taxAndDuty > 0) {
+                            obj.price = obj.price + self.tataxAndDutyTypexAndDuty;
+                        }
+
                         results.push(obj);
                     });
                     return results;
@@ -3579,6 +3654,61 @@
                 var checkoutResultsData = document.getElementById(this.checkoutResults);
                 if (!!checkoutResultsData) {
                     checkoutResultsData.value = btoa(JSON.stringify(this.closeCheckout));
+                }
+            },
+
+            lccNotification: function () {
+                var lccCharge = Polymer.dom(this.root).querySelectorAll(".lcc-charge");
+                var lccEstimate = Polymer.dom(this.root).querySelectorAll(".lcc-estimate");
+
+                if (this.showDutyMessage) {
+                    if (this.taxAndDuty > 0) {
+                        this.taxAndDutyPrice = this.taxAndDuty.toFixed(2);
+
+                        if (this.taxAndDutyType.toLowerCase() === "estimate") {
+                            for (var i = 0; i < lccCharge.length; i++) {
+                                lccCharge[i].classList.add('hidden');
+                            }
+
+                            for (var i = 0; i < lccEstimate.length; i++) {
+                                lccEstimate[i].classList.remove('hidden');
+                            }
+                        }
+                        else {
+                            for (var i = 0; i < lccEstimate.length; i++) {
+                                lccEstimate[i].classList.add('hidden');
+                            }
+
+                            for (var i = 0; i < lccCharge.length; i++) {
+                                lccCharge[i].classList.remove('hidden');
+                            }
+                        }
+                    }
+                }
+            },
+
+            taxAndDutyTypeChanged: function (val, oldVal) {
+                if (this.taxAndDutyType.toLowerCase() !== oldVal && oldVal !== undefined) {
+                    this.$$('#standard-loading').classList.remove('hidden');
+                    this.$$('.services').classList.add('hidden');
+                    this.$.standardDeliveryPanel.opened = false;
+                    this.$.calendarPanel.opened = false;
+                    this.$.dropPointPanel.opened = false;
+                    this.$.storePanel.opened = false;
+                    this.queryServer(this.accessToken, this.gfsData);
+                }
+            },
+
+            taxAndDutyValueChanged: function (val, oldVal) {
+                if (this.taxAndDuty !== oldVal && oldVal !== undefined) {
+                    this.$$('#standard-loading').classList.remove('hidden');
+                    this.$$('.services').classList.add('hidden');
+                    this.taxAndDutyPrice = val.toFixed(2);
+                    this.$.standardDeliveryPanel.opened = false;
+                    this.$.calendarPanel.opened = false;
+                    this.$.dropPointPanel.opened = false;
+                    this.$.storePanel.opened = false;
+                    this.queryServer(this.accessToken, this.gfsData);
                 }
             }
         });
